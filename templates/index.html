@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f4f4;
+            font-family: 'Arial', sans-serif;
+        }
+
+        nav {
+            background-color: #007bff;
+        }
+
+        nav .navbar-brand {
+            color: #fff;
+        }
+
+        nav .navbar-nav .nav-link {
+            color: #fff;
+        }
+
+        nav .navbar-nav .nav-link:hover {
+            color: #ffdd57;
+        }
+
+        .container {
+            margin-top: 30px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        table {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            text-align: center;
+        }
+        th, td {
+            text-align: center;
+            vertical-align: middle;
+            padding: 10px;
+            height: 50px;
+        }
+
+        th {
+            background-color: #aa1c1c;
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .table-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .alert-info {
+            display: none;
+        }
+    </style>
+    <script>
+
+        function toggleChart() {
+            let chartContainer = document.getElementById("chart-container");
+
+            if (chartContainer.style.display === "none") {
+                chartContainer.style.display = "block";
+                fetchApiChart(); // โหลดข้อมูลเมื่อเปิดกราฟ
+            } else {
+                chartContainer.style.display = "none";
+            }
+        }
+
+        async function fetchApiChart() {
+            let chartContainer = document.getElementById("chart-container");
+            chartContainer.innerHTML = `<canvas id="dataChart"></canvas>`;  // รีเซ็ต canvas
+
+            try {
+                const response = await fetch("http://192.168.110.21:5325/test");
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const jsonData = await response.json();
+                displayChart(jsonData);
+            } catch (error) {
+                chartContainer.innerHTML = `<p style='color:red;'>Error: ${error.message}</p>`;
+            }
+        }
+
+        function displayChart(data) {
+            let labelCounts = {};
+            data.forEach(item => {
+                let label = item.details.label;
+                labelCounts[label] = (labelCounts[label] || 0) + 1;
+            });
+
+            let labels = Object.keys(labelCounts);
+            let counts = Object.values(labelCounts);
+
+            // ✅ สร้างสีสุ่มให้แต่ละแท่ง
+            let backgroundColors = counts.map(() => getRandomColor());
+
+            let ctx = document.getElementById("dataChart").getContext("2d");
+            new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Count of Labels",
+                        data: counts,
+                        backgroundColor: backgroundColors,  // กำหนดสีที่แตกต่างให้แต่ละแท่ง
+                        borderColor: backgroundColors,      // กำหนดสีขอบให้เหมือนกับสีพื้นหลัง
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { beginAtZero: true },
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // ปรับขนาด canvas
+            let chartCanvas = document.getElementById("dataChart");
+            chartCanvas.style.width = "100%";
+            chartCanvas.style.maxHeight = "250px"; // ลดความสูงของกราฟ
+        }
+
+        // ฟังก์ชันเพื่อสร้างสีสุ่ม
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        async function fetchApiData() {
+            let tableContainer = document.getElementById("table-container");
+            tableContainer.innerHTML = `<p>Loading...</p>`;
+
+            try {
+                const response = await fetch("http://192.168.110.21:5325/test");
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const jsonData = await response.json();
+                displayData(jsonData);
+            } catch (error) {
+                tableContainer.innerHTML = `<p style='color:red;'>Error: ${error.message}</p>`;
+            }
+        }
+
+        function displayData(data) {
+            let tableContainer = document.getElementById("table-container");
+
+            let table = `<table class="table table-bordered table-striped mt-3">
+                <thead class="table-dark">
+                    <tr>
+                        <th>No.</th>
+                        <th>Date recorded</th>
+                        <th>Time recorded</th>
+                        <th>nameCam</th>
+                        <th>Location</th>
+                        <th>typeCam</th>
+                        <th>Date detect</th>
+                        <th>Time detect</th>
+                        <th>trend</th>
+                        <th>Image</th>
+                        <th>map</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            data.forEach(item => {
+                let dateTime = new Date(item.details.timeStamp);
+                let date_recorded = dateTime.toLocaleDateString("th-TH", { day: "2-digit", month: "numeric", year: "numeric" });
+                let time_recorded = dateTime.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+                let dateTimeDetect = new Date(item.details.timeCaptureImage);
+                let date_detect = dateTimeDetect.toLocaleDateString("th-TH", { day: "2-digit", month: "numeric", year: "numeric" });
+                let time_detect = dateTimeDetect.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+                let imageId = `image-${item.id}`;
+                table += `<tr>
+                    <td>${item.id}</td>
+                    <td>${date_recorded}</td>
+                    <td>${time_recorded}</td>
+                    <td>${item.details.nameCam}</td>
+                    <td>${item.details.location}</td>
+                    <td>${item.details.typeCam}</td>
+                    <td>${date_detect}</td>
+                    <td>${time_detect}</td>
+                    <td>${item.details.text}</td>
+                    <td><canvas id="${imageId}" width="50"></canvas></td>
+                    <td><button class="btn btn-info" onclick="window.open('${item.details.map}', '_blank')">open</button></td>
+                </tr>`;
+
+                cropImage(item.details.link_imges, item.details.bbox, imageId);
+            });
+
+            table += `</tbody></table>`;
+            tableContainer.innerHTML = table;
+        }
+
+        function cropImage(imageSrc, bbox, canvasId) {
+            let img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = imageSrc;
+
+            img.onload = function () {
+                let canvas = document.getElementById(canvasId);
+                let ctx = canvas.getContext("2d");
+
+                let x1 = bbox[0], y1 = bbox[1], x2 = bbox[2], y2 = bbox[3];
+                let width = x2 - x1;
+                let height = y2 - y1;
+
+                canvas.width = 50;
+                canvas.height = (50 * height) / width;
+
+                ctx.drawImage(img, x1, y1, width, height, 0, 0, canvas.width, canvas.height);
+            };
+        }
+
+        async function sendTextInput() {
+            const textInput = document.getElementById('textInput').value;
+
+            if (!textInput) {
+                // Display a pop-up alert if the input is empty
+                alert('กรุณาใส่ข้อมูล');
+                return; // Exit the function if no input is provided
+            }
+
+            try {
+                const response = await fetch('http://192.168.110.21:5325/send_text/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: textInput })
+                });
+
+                const data = await response.json();
+                displayData(data);
+
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        // เรียก API ทันทีเมื่อหน้าเว็บโหลดเสร็จ
+        window.onload = fetchApiData;
+    </script>
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Search from vector search Ver. 0.0.1</a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="card p-4 text-center">
+            <h2 class="mt-5">Detected data</h2>
+            
+            <div class="d-flex align-items-center justify-content-center gap-2">
+                <strong style="white-space: nowrap;">Searched text</strong>
+                <input type="text" id="textInput" class="form-control" placeholder="Enter text to send" />
+                <button class="btn btn-primary" onclick="sendTextInput()">Search</button>
+            </div>
+    
+            <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
+                <button class="btn btn-primary" onclick="toggleChart()">Toggle Chart</button>
+                <button class="btn btn-dark" onclick="fetchApiData()">Refresh Data</button>
+            </div>
+    
+            <div id="chart-container" class="chart-container mt-4" style="display: none;">
+                <canvas id="dataChart"></canvas>
+            </div>
+    
+            <div id="table-container" class="mt-4"></div>
+        </div>
+    </div>
+
+    <script 
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
+    </script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>
